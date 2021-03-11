@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 def start(update: Update, context: CallbackContext):
     context.bot.sendMessage(update.message.chat_id,"""
 Привет!
-Отправь мне ссылки на артистов, которых хочешь отслеживать
+Отправь мне ссылки на артистов в Spotify, которых хочешь отслеживать
         """)
 
 def subscriptions(update: Update, context: CallbackContext):
@@ -27,6 +27,9 @@ def textHandler(update: Update, context: CallbackContext):
         query = query[15:]
     elif query.lower().startswith("/subs"):
         rr.getSubscriptions(update.message.from_user.id)
+        return True
+    elif query.lower().startswith("/help"):
+        rr.help(update.message.from_user.id)
         return True
     elif query.lower().startswith("/latest "):
         query = query[8:]

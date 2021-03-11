@@ -7,18 +7,18 @@ import datetime
 import sqlite3
 import time
 import os
-import json
 
-with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'config.json'), 'r') as f:
-    config = json.load(f)
 
-client_credentials_manager = SpotifyClientCredentials(client_id=config['spotifyClientID'],client_secret=config['spotifyClientSecret'])
+client_credentials_manager = SpotifyClientCredentials(client_id='f6b20c5f4e974fa5a108e1f367d50fd5',client_secret='edb5cf26fc384d8388a81150c78552b7')
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-TOKEN = config['botToken']
+
+TOKEN = '1580238819:AAGotnfIgpWwyfBbzdvbkl976wiCHhfryeI'
 bot = telegram.Bot(token=TOKEN)
 
+
 timeout=512
+
 
 def escapeMarkdown(string):
     string = str(string).replace("*","\*").replace("_","\_").replace("*","\*").replace("`","\`")
@@ -28,6 +28,7 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i+n]
 
+
 def dbSetup(conn, cur):
     stmt1 = "CREATE TABLE IF NOT EXISTS user (userID integer, artistID text)"
     stmt2 = "CREATE TABLE IF NOT EXISTS artist (artistID text PRIMARY KEY, lastSingleID text, lastSingleDate text, lastSingleName text, lastAlbumID text, lastAlbumDate text, lastAlbumName text)"
@@ -35,13 +36,16 @@ def dbSetup(conn, cur):
     cur.execute(stmt2)
     conn.commit()
 
+
 def addArtistToUser(conn, cur, userID, artistID):
     cur.execute("INSERT INTO user (userID, artistID) VALUES (?, ?)", (userID, artistID))
     conn.commit()
 
+
 def removeArtistFromUser(conn, cur, userID, artistID):
     cur.execute("DELETE FROM user WHERE userID = (?) AND artistID = (?);", (userID, artistID))
     conn.commit()
+
 
 def getArtistsForUser(conn, cur, userID):
     cur.execute("SELECT artistID FROM user WHERE userID = (?)", (userID, ))
@@ -51,6 +55,7 @@ def getArtistsForUser(conn, cur, userID):
     else:
         return []
 
+
 def getUsersForArtist(conn, cur, artistID):
     cur.execute("SELECT userID FROM user WHERE artistID = (?)", (artistID, ))
     res = cur.fetchall()
@@ -59,17 +64,21 @@ def getUsersForArtist(conn, cur, artistID):
     else:
         return []
 
+
 def updateLastArtistSingle(conn, cur, artistID, lastID, lastDate, lastName):
     cur.execute("UPDATE artist SET lastSingleID = (?), lastSingleDate = (?), lastSingleName = (?) WHERE artistID = (?);", (lastID, lastDate, lastName, artistID))
     conn.commit()
+
 
 def updateLastArtistAlbum(conn, cur, artistID, lastID, lastDate, lastName):
     cur.execute("UPDATE artist SET lastAlbumID = (?), lastAlbumDate = (?), lastAlbumName = (?) WHERE artistID = (?);", (lastID, lastDate, lastName, artistID))
     conn.commit()
 
+
 def addArtist(conn, cur, artistID, lastSingleID, lastSingleDate, lastSingleName, lastAlbumID, lastAlbumDate, lastAlbumName):
     cur.execute("INSERT INTO artist (artistID, lastSingleID, lastSingleDate, lastSingleName, lastAlbumID, lastAlbumDate, lastAlbumName) VALUES (?, ?, ?, ?, ?, ?, ?)", (artistID, lastSingleID, lastSingleDate, lastSingleName, lastAlbumID, lastAlbumDate, lastAlbumName))
     conn.commit()
+
 
 def getArtist(conn, cur, artistID):
     cur.execute("SELECT * FROM artist WHERE artistID = (?)", (artistID, ))
@@ -79,6 +88,7 @@ def getArtist(conn, cur, artistID):
     else:
         return []
 
+
 def getArtists(conn, cur):
     cur.execute("SELECT artistID FROM artist")
     res = cur.fetchall()
@@ -87,9 +97,11 @@ def getArtists(conn, cur):
     else:
         return []
 
+
 def removeArtist(conn, cur, artistID):
     cur.execute("DELETE FROM artist WHERE artistID = (?);", (artistID, ))
     conn.commit()
+
 
 def botAddArtist(con, cur, artistId):
     artist = getArtist(con, cur, artistId)
@@ -100,6 +112,7 @@ def botAddArtist(con, cur, artistId):
         print("Now artist "+artistId+" is being tracked")
         return
 
+
 def botRemoveArtist(con, cur, artistId):
     users = getUsersForArtist(con, cur, artistId)
     if len(users)==0:
@@ -107,9 +120,11 @@ def botRemoveArtist(con, cur, artistId):
         print("Now artist "+artistId+" is no longer tracked")
         return
 
+
 def generateMessage(release):
     message = "[‍](https://open.spotify.com/album/"+release['id']+")*"+escapeMarkdown(release['name'])+"*\n_"+escapeMarkdown(release['artists'][0]['name'])+"_\n\n🎵 "+release['release_date']+"\n▶️ #"+release['album_type'][:1].upper()+release['album_type'][1:]
     return message
+
 
 def sendRelease(user, image, message, inlineKey):
     global timeout
@@ -255,7 +270,7 @@ def getSubscriptions(userID):
             result = "_No One_"
     else:
         result = "_No One_"
-    bot.sendMessage(userID, "*Теперь отслеживаем:*\n"+result, parse_mode="Markdown", disable_web_page_preview=True)
+    bot.sendMessage(userID, "*Сейчас отслеживаем:*\n"+result, parse_mode="Markdown", disable_web_page_preview=True)
 
 
 def addRemoveArtist(userID, artistID):
@@ -267,12 +282,12 @@ def addRemoveArtist(userID, artistID):
     if (artistID, ) in artists:
         removeArtistFromUser(con, cur, userID, artistID)
         print("Removed artist "+artistID+" ("+spotiArtist['name']+") for "+str(userID))
-        bot.sendMessage(userID, "Вы отписались от"+spotiArtist['name']+".")
+        bot.sendMessage(userID, "Вы отписались от "+spotiArtist['name']+".")
         botRemoveArtist(con, cur, artistID)
     else:
         addArtistToUser(con, cur, userID, artistID)
         print("Added artist "+artistID+" ("+spotiArtist['name']+") for "+str(userID))
-        bot.sendMessage(userID, "Вы подписались на"+spotiArtist['name']+".")
+        bot.sendMessage(userID, "Вы подписались на "+spotiArtist['name']+".")
         botAddArtist(con, cur, artistID)
     con.close()
 
@@ -283,6 +298,21 @@ def updateAll(artists):
     for artist in artists:
         updateNewReleasesLocal(con, cur, artist)
     con.close()
+
+def help(userID):
+    bot.sendMessage(userID, """
+**Привет!**
+
+Доступные команды для взаимодействия:
+`url` - __подписаться/отписаться на артиста (просто скинь ссылку в чат со мной)__
+/subs - __посмотреть текущие подписки__
+/latest + `url` - __последние релизы артиста (нужно сначала подписаться)__
+
+tech info:
+version - `1.0.8e`
+authors - hashapp.github.io
+contributor - @mbuslenko
+ """, parse_mode="Markdown")
 
 if __name__ == "__main__":
     con = sqlite3.connect(os.path.join(os.path.dirname(os.path.realpath(__file__)),'database.db'))
